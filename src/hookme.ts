@@ -5,8 +5,8 @@ import { HookmeClientOptions, WebhookRequest, WebhookResponse } from './model';
 import { AxiosError } from 'axios';
 
 export class HookmeClient {
-  static readonly version = '0.0.1';
-  static readonly versionCode = '1';
+  static readonly version = '0.0.2';
+  static readonly versionCode = '2';
   static readonly userAgent = `${HookmeClient.name}:sdk-ts/${HookmeClient.version}-${HookmeClient.versionCode}`;
 
   private options: HookmeClientOptions;
