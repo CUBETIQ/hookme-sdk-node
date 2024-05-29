@@ -23,7 +23,8 @@
     "url": "git+https://github.com/CUBETIQ/hookme-sdk-node.git"
   },
   "keywords": [
-    "renderer"
+    "hookme",
+    "webhook"
   ],
   "author": "Sambo Chea <sombochea@cubetiqs.com>",
   "license": "ISC",
