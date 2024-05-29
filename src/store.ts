@@ -1,8 +1,11 @@
+import { Logs } from "./logger";
+
 export interface IStore {
     set(key: string, value: any): void;
     get(key: string): any;
     delete(key: string): void;
     getAll(): Map<string, any>;
+    has(key: string): boolean;
     clear(): void;
 }
 
@@ -28,6 +31,10 @@ export class MapStore implements IStore {
 
     getAll(): Map<string, any> {
         return this.store;
+    }
+
+    has(key: string): boolean {
+        return this.store.has(key);
     }
 
     clear(): void {
@@ -58,6 +65,10 @@ export class LocalStorageStore implements IStore {
         return store;
     }
 
+    has(key: string): boolean {
+        return localStorage.getItem(key) !== null;
+    }
+
     clear(): void {
         localStorage.clear();
     }
@@ -74,8 +85,8 @@ export class FileStore implements IStore {
         this.path = path;
         if (this.fs.existsSync(this.path)) {
             const data = this.fs.readFileSync(this.path);
-            console.log(JSON.parse(data));
             this.store = new Map(JSON.parse(data));
+            Logs.d(`[FileStore] file store loaded: ${this.path} with ${this.store.size} entries`);
         } else {
             this.store = new Map();
         }
@@ -97,6 +108,10 @@ export class FileStore implements IStore {
 
     getAll(): Map<string, any> {
         return this.store;
+    }
+
+    has(key: string): boolean {
+        return this.store.has(key);
     }
 
     clear(): void {

@@ -1,14 +1,17 @@
 import { DEFAULT_HOOKME_URL } from "./config";
+import { IStore } from "./store";
 
 export class HookmeClientOptions {
     tenantId?: string;
     apiKey?: string;
     url?: string;
+    store?: IStore;
 
-    constructor(tenantId: string, apiKey: string, url?: string) {
+    constructor(tenantId: string, apiKey: string, url?: string, store?: IStore) {
         this.tenantId = tenantId;
         this.apiKey = apiKey;
         this.url = url ? url : DEFAULT_HOOKME_URL;
+        this.store = store;
     }
 
     static builder(): HookmeClientOptionsBuilder {
@@ -20,11 +23,13 @@ class HookmeClientOptionsBuilder {
     private _tenantId: string;
     private _apiKey: string;
     private _url: string;
+    private _store?: IStore;
 
     constructor() {
         this._tenantId = 'default';
         this._apiKey = '';
         this._url = DEFAULT_HOOKME_URL;
+        this._store = undefined;
     }
 
     tenantId(tenantId: string): HookmeClientOptionsBuilder {
@@ -42,8 +47,13 @@ class HookmeClientOptionsBuilder {
         return this;
     }
 
+    store(store: IStore): HookmeClientOptionsBuilder {
+        this._store = store;
+        return this;
+    }
+
     build(): HookmeClientOptions {
-        return new HookmeClientOptions(this._tenantId, this._apiKey, this._url);
+        return new HookmeClientOptions(this._tenantId, this._apiKey, this._url, this._store);
     }
 }
 
@@ -52,10 +62,15 @@ export type ProviderType = 'telegram' | 'discord' | 'email';
 export class WebhookRequest {
     provider: ProviderType | string;
     data: any;
+    // please ignore this field, it's only used for internal request only
+    _request_id?: string;
+    _created_at?: Date;
 
-    constructor(provider: ProviderType | string, data: any) {
+    constructor(provider: ProviderType | string, data: any, _request_id?: string, _created_at?: Date) {
         this.provider = provider;
         this.data = data;
+        this._request_id = _request_id;
+        this._created_at = _created_at ? _created_at : new Date();
     }
 
     static builder(): WebhookRequestBuilder {

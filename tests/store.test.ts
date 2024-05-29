@@ -1,6 +1,6 @@
 import { FileStore } from '../src/store';
 
-const store = new FileStore("caches.json");
+const store = new FileStore("caches.test.json");
 
 test('File store should be able to set and get value', () => {
     store.set("key3", "value3");

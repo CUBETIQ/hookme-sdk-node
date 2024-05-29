@@ -1,16 +1,19 @@
 import { PostWebhookFailedException } from '../src/exceptions';
 import { HookmeClient, HookmeClientOptions, WebhookRequest } from '../src/index';
+import { FileStore } from '../src/store';
 
 const API_KEY = 'hm_xxx'
 
-const sdk = HookmeClient.create(
-    HookmeClientOptions.builder()
-        .tenantId('default')
-        .apiKey(API_KEY)
-        .build()
-)
+const store = new FileStore("caches.json");
+// const sdk = HookmeClient.create(
+//     HookmeClientOptions.builder()
+//         .tenantId('default')
+//         .apiKey(API_KEY)
+//         .store(store)
+//         .build()
+// )
 
-// const sdk = HookmeClient.local();
+const sdk = HookmeClient.local(store);
 
 test('Hookme client sdk should be defined', () => {
     expect(sdk).toBeDefined();
@@ -51,7 +54,7 @@ test('Hookme client sdk should be able to post webhook request', async () => {
     expect(response?.created_at).toBeDefined();
     expect(response?.created_at).not.toBeNull();
     expect(response?.created_at).not.toBe('');
-})
+});
 
 test('Hookme client sdk should be able to post webhook request with invalid provider', async () => {
     const request = WebhookRequest.builder()
@@ -74,7 +77,7 @@ test('Hookme client sdk should be able to post webhook request with invalid prov
             expect(error.status).toBe(400);
         }
     }
-})
+});
 
 test('Hookme client sdk should be able to post webhook request with invalid data', async () => {
     const request = WebhookRequest.builder()
@@ -91,4 +94,8 @@ test('Hookme client sdk should be able to post webhook request with invalid data
             expect(error.status).toBe(400);
         }
     }
-})
+});
+
+test('Hookme client sdk should be able to wait for retry', async () => {
+    await sdk.waitForRetry();
+});

@@ -27,3 +27,8 @@ export const getSystemUsername = () => {
 
     return name;
 }
+
+export const generatedID = () => {
+    const rand = Math.random().toString(36).substring(2, 15);
+    return `${rand}-${new Date().getTime()}`;
+}
