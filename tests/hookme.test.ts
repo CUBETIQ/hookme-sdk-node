@@ -24,8 +24,8 @@ test('Hookme client sdk should be able to post webhook request', async () => {
         .provider("telegram")
         .data({
             telegram: {
-                chat_id: 123,
-                bot_token: "123",
+                chat_id: 123, // please replace with your chat_id (must a correct chat_id)
+                bot_token: "123", // please replace with your bot_token (must a correct bot_token)
             },
             message: "Hello, world!",
         })
