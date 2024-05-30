@@ -24,8 +24,9 @@ const sdk = HookmeClient.create(
 const request = WebhookRequest.builder()
         .provider("telegram")
         .data({
-            configs: {
-                chat_id: 123,
+            telegram: {
+                chat_id: 123, // please replace with your chat_id (must a correct chat_id)
+                bot_token: "123", // please replace with your bot_token (must a correct bot_token)
             },
             message: "Hello, world!",
         })
@@ -33,7 +34,7 @@ const request = WebhookRequest.builder()
 
 const response = await sdk.post(request);
 console.log("Request: ", request);
-// Output: {"provider":"","data":{"configs":{"chat_id":123},"message":"Hello, world!"}}
+// Output: {"provider":"telegram","data":{"telegram":{"chat_id":123,"bot_token":"123"},"message":"Hello, world!"}}
 console.log("Response: ", response);
 // Output: {id: "gKw9yH0vq7YGm-yqeiNMlg=="",status: "pending",created_at: "2024-05-29T11:17:45.295Z"}
 ```
