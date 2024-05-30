@@ -16,6 +16,7 @@ export class HookmeClient {
   private _isRetryCompleted = false;
 
   private _retryQueue: WebhookRequest[] = [];
+  private _sendingRequests = new Map<string, WebhookRequest>();
 
   constructor(options: HookmeClientOptions) {
     this.options = options;
@@ -87,6 +88,15 @@ export class HookmeClient {
       request._request_id = generatedID();
     }
 
+    // check if the request is already sending
+    if (this._sendingRequests.has(request._request_id)) {
+      Logs.d(`request is already sending: ${request._request_id}`);
+      return null;
+    } else {
+      // add the request to sending map
+      this._sendingRequests.set(request._request_id, request);
+    }
+
     let responseStatus = 500;
     try {
       const response = await HookmeClientService.post(
@@ -123,6 +133,9 @@ export class HookmeClient {
       } else {
         throw new PostWebhookFailedException(JSON.stringify(error), responseStatus);
       }
+    } finally {
+      // remove the request from sending map after post request (success or failed)
+      this._sendingRequests.delete(request._request_id);
     }
   }
 

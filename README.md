@@ -3,8 +3,9 @@
 A simple way to send webhook request to the server.
 
 -   [x] Send webhook request with payload.
--   [ ] Cache the request if the server is not available and send it later.
+-   [x] Cache the request if the server is not available and send it later.
 -   [ ] Support retry mechanism.
+-   [x] Check the duplicate request before sending (If the request is sending, drop the request).
 
 ## Usages
 

@@ -39,5 +39,14 @@ export class Logs {
     ): void {
       this.print(2, message, time, error, stackTrace);
     }
+
+    static w(
+      message: any,
+      time?: Date,
+      error?: any,
+      stackTrace?: any
+    ): void {
+      this.print(3, message, time, error, stackTrace);
+    }
   }
   
