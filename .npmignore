@@ -4,3 +4,5 @@ src/
 jest.config.js
 tsconfig.json
 example/
+caches.json
+caches.test.json
