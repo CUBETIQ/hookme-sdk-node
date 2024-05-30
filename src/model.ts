@@ -6,12 +6,14 @@ export class HookmeClientOptions {
     apiKey?: string;
     url?: string;
     store?: IStore;
+    retryInterval?: number; // in seconds
 
-    constructor(tenantId: string, apiKey: string, url?: string, store?: IStore) {
+    constructor(tenantId: string, apiKey: string, url?: string, store?: IStore, retryInterval?: number) {
         this.tenantId = tenantId;
         this.apiKey = apiKey;
         this.url = url ? url : DEFAULT_HOOKME_URL;
         this.store = store;
+        this.retryInterval = retryInterval ? retryInterval : 5;
     }
 
     static builder(): HookmeClientOptionsBuilder {
@@ -24,12 +26,14 @@ class HookmeClientOptionsBuilder {
     private _apiKey: string;
     private _url: string;
     private _store?: IStore;
+    private _retryInterval?: number;
 
     constructor() {
         this._tenantId = 'default';
         this._apiKey = '';
         this._url = DEFAULT_HOOKME_URL;
         this._store = undefined;
+        this._retryInterval = 5;
     }
 
     tenantId(tenantId: string): HookmeClientOptionsBuilder {
@@ -52,8 +56,13 @@ class HookmeClientOptionsBuilder {
         return this;
     }
 
+    retryInterval(retryInterval: number): HookmeClientOptionsBuilder {
+        this._retryInterval = retryInterval;
+        return this;
+    }
+
     build(): HookmeClientOptions {
-        return new HookmeClientOptions(this._tenantId, this._apiKey, this._url, this._store);
+        return new HookmeClientOptions(this._tenantId, this._apiKey, this._url, this._store, this._retryInterval);
     }
 }
 

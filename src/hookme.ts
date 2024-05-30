@@ -29,12 +29,20 @@ export class HookmeClient {
     });
 
     // interval retry queue
-    setInterval(() => {
-      this.intervalRetryQueue();
-    }, 5000); // 5 seconds
+    const retryInterval = this.options.retryInterval ? this.options.retryInterval : 5; // default 5 seconds
+    if (retryInterval && retryInterval > 0) {
+      this.startIntervalRetryQueue(retryInterval);
+    }
   }
 
-  async retryFailedRequests(): Promise<void> {
+  private startIntervalRetryQueue(seconds: number): void {
+    Logs.d(`[IStore] retrying failed requests with interval: ${seconds}`);
+    setInterval(() => {
+      this.intervalRetryQueue();
+    }, seconds * 1000);
+  }
+
+  private async retryFailedRequests(): Promise<void> {
     if (this.store) {
       const requests = this.store.getAll();
       for (const [key, value] of requests) {
@@ -49,7 +57,7 @@ export class HookmeClient {
     }
   }
 
-  async intervalRetryQueue(): Promise<void> {
+  private async intervalRetryQueue(): Promise<void> {
     while (this._retryQueue.length > 0) {
       const request = this._retryQueue.shift();
       if (request) {
