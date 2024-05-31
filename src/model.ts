@@ -1,5 +1,6 @@
 import { DEFAULT_HOOKME_URL } from "./config";
 import { IStore } from "./store";
+import { generatedID } from "./util";
 
 export class HookmeClientOptions {
     tenantId?: string;
@@ -87,7 +88,7 @@ export class WebhookRequest {
     constructor(provider: ProviderType | string, data: any, _request_id?: string, _created_at?: Date) {
         this.provider = provider;
         this.data = data;
-        this._request_id = _request_id;
+        this._request_id = _request_id ? _request_id : generatedID();
         this._created_at = _created_at ? _created_at : new Date();
     }
 

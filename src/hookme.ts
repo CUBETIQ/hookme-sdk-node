@@ -182,6 +182,10 @@ export class HookmeClient {
 
   // enqueue the request to emit queue
   enqueue(request: WebhookRequest): void {
+    if (!request._request_id) {
+      request._request_id = generatedID();
+    }
+
     // run in background to avoid blocking
     this._emitQueue.push(request);
   }
