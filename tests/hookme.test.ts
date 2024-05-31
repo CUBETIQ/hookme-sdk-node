@@ -31,7 +31,7 @@ test('Hookme client sdk should be able to post webhook request', async () => {
         })
         .build();
 
-    const response = await sdk.post(request);
+    const response = await sdk.post(request, {noBackoff: false});
     console.log("Request: ", request);
     console.log("Response: ", response);
 

@@ -17,6 +17,7 @@ export class HookmeClient {
 
   private _retryQueue: WebhookRequest[] = [];
   private _sendingRequests = new Map<string, WebhookRequest>();
+  private _emitQueue: WebhookRequest[] = [];
 
   constructor(options: HookmeClientOptions) {
     this.options = options;
@@ -33,12 +34,25 @@ export class HookmeClient {
     if (retryInterval && retryInterval > 0) {
       this.startIntervalRetryQueue(retryInterval);
     }
+
+    // process emit queue
+    const emitInterval = this.options.emitInterval ? this.options.emitInterval : 1; // default 1 second
+    if (emitInterval && emitInterval > 0) {
+      this.startProcessEmitQueue(emitInterval);
+    }
   }
 
   private startIntervalRetryQueue(seconds: number): void {
     Logs.d(`[IStore] retrying failed requests with interval: ${seconds}`);
     setInterval(() => {
       this.intervalRetryQueue();
+    }, seconds * 1000);
+  }
+
+  private startProcessEmitQueue(seconds: number): void {
+    Logs.d(`[IStore] processing emit queue with interval: ${seconds}`);
+    setInterval(() => {
+      this.processEmitQueue();
     }, seconds * 1000);
   }
 
@@ -70,13 +84,28 @@ export class HookmeClient {
     }
   }
 
+  private async processEmitQueue(): Promise<void> {
+    while (this._emitQueue.length > 0) {
+      const request = this._emitQueue.shift();
+      if (request) {
+        try {
+          await this.post(request); // should set noBackoff to true and use enqueue instead (when error occurred add to emit queue)
+        } catch (error) {
+          Logs.e(`failed to post request from emit queue: ${request._request_id}`);
+          // add to emit queue if failed to post
+          // TODO: add to emit queue
+        }
+      }
+    }
+  }
+
   async waitForRetry(): Promise<void> {
     while (!this._isRetryCompleted) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 
-  async post(request: WebhookRequest): Promise<WebhookResponse | null> {
+  async post(request: WebhookRequest, configs?: { noBackoff?: boolean }): Promise<WebhookResponse | null> {
     Logs.d(`post webhook request: ${JSON.stringify(request)}`);
 
     if (!request.provider) {
@@ -118,8 +147,10 @@ export class HookmeClient {
       if (response.status !== 200) {
         Logs.e(`post webhook failed: ${JSON.stringify(response.data)}`);
 
-        // store the request if failed to post
-        this.failedToStoreRequest(request);
+        if (configs?.noBackoff !== true) {
+          // store the request if failed to post
+          this.failedToStoreRequest(request);
+        }
 
         throw new PostWebhookFailedException(response.data?.error || response.data, response.status);
       }
@@ -133,8 +164,10 @@ export class HookmeClient {
       Logs.d(`post webhook response: ${JSON.stringify(response.data)}`);
       return WebhookResponse.fromJson(response.data);
     } catch (error) {
-      // store the request if failed to post
-      this.failedToStoreRequest(request);
+      if (configs?.noBackoff !== true) {
+        // store the request if failed to post
+        this.failedToStoreRequest(request);
+      }
 
       if (error instanceof AxiosError) {
         throw new PostWebhookFailedException(error.response?.data?.error, error.response?.status || responseStatus);
@@ -145,6 +178,12 @@ export class HookmeClient {
       // remove the request from sending map after post request (success or failed)
       this._sendingRequests.delete(request._request_id);
     }
+  }
+
+  // enqueue the request to emit queue
+  enqueue(request: WebhookRequest): void {
+    // run in background to avoid blocking
+    this._emitQueue.push(request);
   }
 
   private failedToStoreRequest(request: WebhookRequest): void {

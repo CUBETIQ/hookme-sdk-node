@@ -7,13 +7,15 @@ export class HookmeClientOptions {
     url?: string;
     store?: IStore;
     retryInterval?: number; // in seconds
+    emitInterval?: number; // in seconds
 
-    constructor(tenantId: string, apiKey: string, url?: string, store?: IStore, retryInterval?: number) {
+    constructor(tenantId: string, apiKey: string, url?: string, store?: IStore, retryInterval?: number, emitInterval?: number) {
         this.tenantId = tenantId;
         this.apiKey = apiKey;
         this.url = url ? url : DEFAULT_HOOKME_URL;
         this.store = store;
         this.retryInterval = retryInterval ? retryInterval : 5;
+        this.emitInterval = emitInterval ? emitInterval : 1;
     }
 
     static builder(): HookmeClientOptionsBuilder {
@@ -27,6 +29,7 @@ class HookmeClientOptionsBuilder {
     private _url: string;
     private _store?: IStore;
     private _retryInterval?: number;
+    private _emitInterval?: number;
 
     constructor() {
         this._tenantId = 'default';
@@ -34,6 +37,7 @@ class HookmeClientOptionsBuilder {
         this._url = DEFAULT_HOOKME_URL;
         this._store = undefined;
         this._retryInterval = 5;
+        this._emitInterval = 1;
     }
 
     tenantId(tenantId: string): HookmeClientOptionsBuilder {
@@ -61,8 +65,13 @@ class HookmeClientOptionsBuilder {
         return this;
     }
 
+    emitInterval(emitInterval: number): HookmeClientOptionsBuilder {
+        this._emitInterval = emitInterval;
+        return this;
+    }
+
     build(): HookmeClientOptions {
-        return new HookmeClientOptions(this._tenantId, this._apiKey, this._url, this._store, this._retryInterval);
+        return new HookmeClientOptions(this._tenantId, this._apiKey, this._url, this._store, this._retryInterval, this._emitInterval);
     }
 }
 
