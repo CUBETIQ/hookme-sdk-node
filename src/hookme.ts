@@ -7,26 +7,32 @@ import { IStore } from './store';
 import { generatedID } from './util';
 
 export class HookmeClient {
-  static readonly version = '0.0.2';
-  static readonly versionCode = '2';
+  static readonly version = '0.0.5';
+  static readonly versionCode = '5';
   static readonly userAgent = `${HookmeClient.name}:sdk-ts/${HookmeClient.version}-${HookmeClient.versionCode}`;
 
   private store?: IStore;
   private options: HookmeClientOptions;
   private _isRetryCompleted = false;
 
-  private _retryQueue: WebhookRequest[] = [];
+  private _retryRequests = new Map<string, WebhookRequest>();
   private _sendingRequests = new Map<string, WebhookRequest>();
   private _emitQueue: WebhookRequest[] = [];
+  private _delayedNextRequestInSeconds = 1;
 
   constructor(options: HookmeClientOptions) {
+    // set log level
+    Logs.setLevel(options.logLevel ? options.logLevel : Logs.getLevel());
+
+    // set options and store
     this.options = options;
     this.store = options.store;
+    Logs.d(`[constructor] HookmeClient initialized with url: ${options.url} and store: ${this.store ? 'enabled' : 'disabled'}`);
 
     // retry failed requests with non-blocking
     this.retryFailedRequests().then(() => {
       this._isRetryCompleted = true;
-      Logs.d('[IStore] retrying failed requests completed');
+      Logs.d('[retryFailedRequests] retrying failed requests completed');
     });
 
     // interval retry queue
@@ -43,70 +49,111 @@ export class HookmeClient {
   }
 
   private startIntervalRetryQueue(seconds: number): void {
-    Logs.d(`[IStore] retrying failed requests with interval: ${seconds}`);
-    setInterval(() => {
-      this.intervalRetryQueue();
-    }, seconds * 1000);
+    Logs.d(`[startIntervalRetryQueue] retrying failed requests with interval: ${seconds} seconds`);
+
+    // create a new promise to avoid blocking the main thread
+    new Promise(async (resolve) => {
+      while (true) {
+        // wait for seconds
+        await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+        await this.intervalRetryQueue();
+      }
+    });
+
+    Logs.d(`[startIntervalRetryQueue] retrying failed requests started`);
   }
 
   private startProcessEmitQueue(seconds: number): void {
-    Logs.d(`[IStore] processing emit queue with interval: ${seconds}`);
-    setInterval(() => {
-      this.processEmitQueue();
-    }, seconds * 1000);
+    Logs.d(`[startProcessEmitQueue] processing emit queue with interval: ${seconds} seconds`);
+    
+    // create a new promise to avoid blocking the main thread
+    new Promise(async (resolve) => {
+      while (true) {
+        // wait for seconds
+        await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+        await this.processEmitQueue();
+      }
+    });
+
+    Logs.d(`[startProcessEmitQueue] processing emit queue started`);
   }
 
   private async retryFailedRequests(): Promise<void> {
     if (this.store) {
       const requests = this.store.getAll();
+      Logs.v(`[retryFailedRequests] retrying failed total requests: ${requests.size}`);
+
       for (const [key, value] of requests) {
-        Logs.d(`[IStore] retrying request: ${key}`);
+        Logs.d(`[retryFailedRequests] retrying request: ${key}`);
         try {
           await this.post(value);
           this.store.delete(key);
+          Logs.d(`[retryFailedRequests.IStore] removed the request: ${key}`);
+
+          // wait for next request (to avoid brute force)
+          await new Promise((resolve) => setTimeout(resolve, this._delayedNextRequestInSeconds * 1000));
         } catch (error) {
-          Logs.e(`[IStore] failed to retry request: ${key}`);
+          Logs.e(`[retryFailedRequests] failed to retry request: ${key} with error: ${error}`);
         }
       }
     }
   }
 
   private async intervalRetryQueue(): Promise<void> {
-    while (this._retryQueue.length > 0) {
-      const request = this._retryQueue.shift();
-      if (request) {
-        try {
-          await this.post(request);
-        } catch (error) {
-          Logs.e(`[IStore] failed to retry request from queue: ${request._request_id}`);
-        }
+    Logs.v(`[intervalRetryQueue] retrying failed total requests: ${this._retryRequests.size}`);
+
+    for (const [key, value] of this._retryRequests) {
+      Logs.d(`[intervalRetryQueue] retrying request: ${key}`);
+      try {
+        await this.post(value, { noBackoff: true });
+        this._retryRequests.delete(key);
+        Logs.d(`[intervalRetryQueue] removed the request: ${key}`);
+
+        // wait for next request (to avoid brute force)
+        await new Promise((resolve) => setTimeout(resolve, this._delayedNextRequestInSeconds * 1000));
+      } catch (error) {
+        Logs.e(`[intervalRetryQueue] failed to retry request: ${key} with error: ${error}`);
       }
     }
   }
 
   private async processEmitQueue(): Promise<void> {
+    Logs.v(`[processEmitQueue] processing emit queue total requests: ${this._emitQueue.length}`);
+
     while (this._emitQueue.length > 0) {
       const request = this._emitQueue.shift();
       if (request) {
         try {
           await this.post(request); // should set noBackoff to true and use enqueue instead (when error occurred add to emit queue)
+
+          // if success, remove from the store
+          if (this.store && this.store.has(request._request_id!)) {
+            this.store.delete(request._request_id!);
+            Logs.d(`[processEmitQueue.IStore] removed the request: ${request._request_id}`);
+          }
+
+          // wait for next request (to avoid brute force)
+          await new Promise((resolve) => setTimeout(resolve, this._delayedNextRequestInSeconds * 1000));
         } catch (error) {
-          Logs.e(`failed to post request from emit queue: ${request._request_id}`);
+          Logs.e(`[processEmitQueue] failed to post request from emit queue: ${request._request_id} with error: ${error}`);
           // add to emit queue if failed to post
-          // TODO: add to emit queue
+          setTimeout(() => {
+            this._emitQueue.push(request);
+          }, 5000); // retry after 5 seconds
         }
       }
     }
   }
 
   async waitForRetry(): Promise<void> {
+    Logs.v(`[waitForRetry] waiting for retry to complete`);
     while (!this._isRetryCompleted) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 
   async post(request: WebhookRequest, configs?: { noBackoff?: boolean }): Promise<WebhookResponse | null> {
-    Logs.d(`post webhook request: ${JSON.stringify(request)}`);
+    Logs.d(`[post] post webhook request: ${JSON.stringify(request)}`);
 
     if (!request.provider) {
       throw new PostWebhookFailedException('provider is required', 400);
@@ -127,7 +174,7 @@ export class HookmeClient {
 
     // check if the request is already sending
     if (this._sendingRequests.has(request._request_id)) {
-      Logs.d(`request is already sending: ${request._request_id}`);
+      Logs.d(`[post] request is already sending: ${request._request_id}`);
       return null;
     } else {
       // add the request to sending map
@@ -145,7 +192,7 @@ export class HookmeClient {
 
       responseStatus = response.status;
       if (response.status !== 200) {
-        Logs.e(`post webhook failed: ${JSON.stringify(response.data)}`);
+        Logs.e(`[post] post webhook failed: ${JSON.stringify(response.data)}`);
 
         if (configs?.noBackoff !== true) {
           // store the request if failed to post
@@ -158,10 +205,10 @@ export class HookmeClient {
       // remove the request from store if success
       if (this.store && this.store.has(request._request_id!)) {
         this.store.delete(request._request_id!);
-        Logs.d(`[IStore] removed the request: ${request._request_id}`);
+        Logs.d(`[post.IStore] removed the request: ${request._request_id}`);
       }
 
-      Logs.d(`post webhook response: ${JSON.stringify(response.data)}`);
+      Logs.d(`[post] post webhook response: ${JSON.stringify(response.data)}`);
       return WebhookResponse.fromJson(response.data);
     } catch (error) {
       if (configs?.noBackoff !== true) {
@@ -170,7 +217,8 @@ export class HookmeClient {
       }
 
       if (error instanceof AxiosError) {
-        throw new PostWebhookFailedException(error.response?.data?.error, error.response?.status || responseStatus);
+        const err = error.response?.data?.error || error.response?.data;
+        throw new PostWebhookFailedException(err, error.response?.status || responseStatus);
       } else {
         throw new PostWebhookFailedException(JSON.stringify(error), responseStatus);
       }
@@ -188,6 +236,13 @@ export class HookmeClient {
 
     // run in background to avoid blocking
     this._emitQueue.push(request);
+    Logs.d(`[enqueue] enqueued the request: ${request._request_id}`);
+
+    // store the request
+    if (this.store) {
+      this.store.set(request._request_id, request);
+      Logs.d(`[enqueue.IStore] stored the request: ${request._request_id}`);
+    }
   }
 
   private failedToStoreRequest(request: WebhookRequest): void {
@@ -196,11 +251,21 @@ export class HookmeClient {
         request._request_id = generatedID();
       }
 
-      this.store.set(request._request_id!, request);
-      Logs.d(`[IStore] stored the request: ${request._request_id}`);
+      // Avoiding writing the same request to store multiple times (so just ignore it if already stored)
+      if (this.store.has(request._request_id!)) {
+        Logs.d(`[failedToStoreRequest.IStore] request is already stored: ${request._request_id}`);
+      } else {
+        this.store.set(request._request_id!, request);
+        Logs.d(`[failedToStoreRequest.IStore] stored the request: ${request._request_id}`);
+      }
 
-      // send to retry queue
-      this._retryQueue.push(request);
+      // add to retry queue
+      if (this._retryRequests.has(request._request_id)) {
+        Logs.d(`[failedToStoreRequest] request is already in retry queue: ${request._request_id}`);
+      } else {
+        this._retryRequests.set(request._request_id, request);
+        Logs.d(`[failedToStoreRequest] added to retry queue: ${request._request_id}`);
+      }
     }
   }
 

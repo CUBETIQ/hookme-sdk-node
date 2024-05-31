@@ -1,4 +1,5 @@
 import { DEFAULT_HOOKME_URL } from "./config";
+import { LogLevel, Logs } from "./logger";
 import { IStore } from "./store";
 import { generatedID } from "./util";
 
@@ -9,14 +10,16 @@ export class HookmeClientOptions {
     store?: IStore;
     retryInterval?: number; // in seconds
     emitInterval?: number; // in seconds
+    logLevel?: LogLevel; // default 'Logs.getLevel()'
 
-    constructor(tenantId: string, apiKey: string, url?: string, store?: IStore, retryInterval?: number, emitInterval?: number) {
+    constructor(tenantId: string, apiKey: string, url?: string, store?: IStore, retryInterval?: number, emitInterval?: number, logLevel?: LogLevel) {
         this.tenantId = tenantId;
         this.apiKey = apiKey;
         this.url = url ? url : DEFAULT_HOOKME_URL;
         this.store = store;
         this.retryInterval = retryInterval ? retryInterval : 5;
         this.emitInterval = emitInterval ? emitInterval : 1;
+        this.logLevel = logLevel ? logLevel : Logs.getLevel();
     }
 
     static builder(): HookmeClientOptionsBuilder {
@@ -31,6 +34,7 @@ class HookmeClientOptionsBuilder {
     private _store?: IStore;
     private _retryInterval?: number;
     private _emitInterval?: number;
+    private _logLevel?: LogLevel;
 
     constructor() {
         this._tenantId = 'default';
@@ -39,6 +43,7 @@ class HookmeClientOptionsBuilder {
         this._store = undefined;
         this._retryInterval = 5;
         this._emitInterval = 1;
+        this._logLevel = Logs.getLevel();
     }
 
     tenantId(tenantId: string): HookmeClientOptionsBuilder {
@@ -71,8 +76,13 @@ class HookmeClientOptionsBuilder {
         return this;
     }
 
+    logLevel(logLevel: LogLevel): HookmeClientOptionsBuilder {
+        this._logLevel = logLevel;
+        return this;
+    }
+
     build(): HookmeClientOptions {
-        return new HookmeClientOptions(this._tenantId, this._apiKey, this._url, this._store, this._retryInterval, this._emitInterval);
+        return new HookmeClientOptions(this._tenantId, this._apiKey, this._url, this._store, this._retryInterval, this._emitInterval, this._logLevel);
     }
 }
 

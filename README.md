@@ -7,7 +7,8 @@ A simple way to send webhook request to the server.
 -   [x] Support retry mechanism. (Support interval retry mechanism)
 -   [x] Check the duplicate request before sending (If the request is sending, drop the request).
 -   [x] Support enqueue the request to the queue.
--   [ ] Enhance the enqueue to the queue with storage (Add the storage to store the request for later sending).
+-   [x] Enhance the enqueue to the queue with storage (Add the storage to store the request for later sending).
+-   [ ] Support batch request sending for enqueue.
 
 ## Usages
 
@@ -40,6 +41,10 @@ console.log('Request: ', request);
 console.log('Response: ', response);
 // Output: {id: "gKw9yH0vq7YGm-yqeiNMlg=="",status: "pending",created_at: "2024-05-29T11:17:45.295Z"}
 ```
+
+### Issues
+
+-   When send error with using file store, the interval will auto send the request again and again (this should be change and should delay the with exponential backoff).
 
 ### Contributors
 

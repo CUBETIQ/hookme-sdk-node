@@ -9,6 +9,25 @@ export interface IStore {
     clear(): void;
 }
 
+export class Store {
+    static file(path: string): IStore {
+        return new FileStore(path);
+    }
+
+    static local(): IStore {
+        if (typeof localStorage === 'undefined') {
+            Logs.w('[Store] LocalStorage is not available');
+            return new MapStore();
+        }
+
+        return new LocalStorageStore();
+    }
+
+    static map(): IStore {
+        return new MapStore();
+    }
+}
+
 // Map Store works in both the browser (client-side) and Node.js (server-side), but it doesn't persist data
 export class MapStore implements IStore {
     private store: Map<string, any>;
