@@ -7,8 +7,8 @@ import { IStore } from './store';
 import { generatedID } from './util';
 
 export class HookmeClient {
-  static readonly version = '0.0.5';
-  static readonly versionCode = '5';
+  static readonly version = '0.0.6';
+  static readonly versionCode = '6';
   static readonly userAgent = `${HookmeClient.name}:sdk-ts/${HookmeClient.version}-${HookmeClient.versionCode}`;
 
   private store?: IStore;

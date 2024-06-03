@@ -108,6 +108,14 @@ export class FileStore implements IStore {
             Logs.d(`[FileStore] file store loaded: ${this.path} with ${this.store.size} entries`);
         } else {
             this.store = new Map();
+            // check if the directory not exists, must create it with recursive option
+            const dir = this.path.substring(0, this.path.lastIndexOf('/'));
+            if (!this.fs.existsSync(dir)) {
+                this.fs.mkdirSync(dir, { recursive: true });
+                Logs.d(`[FileStore] directory created: ${dir}`);
+            }
+
+            this.fs.writeFileSync(this.path, JSON.stringify(Array.from(this.store.entries())));
         }
     }
 

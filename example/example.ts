@@ -1,7 +1,7 @@
 import { HookmeClient, Store, Logs } from "../src";
 
 Logs.setLevel("i");
-const store = Store.file("caches.json");
+const store = Store.file("./data/me/test/caches.json");
 const sdk = HookmeClient.local(store);
 
 console.log("SDK: ", sdk.getVersionInfo());
