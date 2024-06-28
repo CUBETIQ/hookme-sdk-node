@@ -150,3 +150,112 @@ export class WebhookResponse {
         return new WebhookResponse(json.id, json.status, new Date(json.created_at), json.updated_at ? new Date(json.updated_at) : null, json.error);
     }
 }
+
+export type ScheduleJobType = 'cron' | 'interval';
+
+// This cron expression is with seconds (e.g. '*/5 * * * * *' for every 5 seconds)
+export const CronExpression = {
+    Every5Seconds: '*/5 * * * * *',
+    Every10Seconds: '*/10 * * * * *',
+    Every30Seconds: '*/30 * * * * *',
+    Every1Minute: '0 * * * * *',
+    Every5Minutes: '*/5 * * * * *',
+    Every10Minutes: '*/10 * * * * *',
+    Every30Minutes: '*/30 * * * * *',
+    Every1Hour: '0 0 * * * *',
+    Every6Hours: '0 0 */6 * * *',
+    Every12Hours: '0 0 */12 * * *',
+}
+
+export class ScheduleJob {
+    webhook_url: string;
+    webhook_data: any;
+    type: ScheduleJobType;
+    // cron e.g. '*/5 * * * * *' for every 5 seconds or '0 0 12 * * *' for every day at 12:00 PM
+    // interval e.g. '5s' for every 5 seconds or '1h' for every 1 hour (unit: s, m, h, d, w)
+    schedule: string;
+    tz?: string;
+
+    constructor(webhook_url: string, webhook_data: any, type: ScheduleJobType, schedule: string, tz?: string) {
+        this.webhook_url = webhook_url;
+        this.webhook_data = webhook_data;
+        this.type = type;
+        this.schedule = schedule;
+        this.tz = tz;
+    }
+
+    static builder(): ScheduleJobBuilder {
+        return new ScheduleJobBuilder();
+    }
+}
+
+class ScheduleJobBuilder {
+    private _webhook_url: string;
+    private _webhook_data: any;
+    private _type: ScheduleJobType;
+    private _schedule: string;
+    private _tz?: string;
+
+    constructor() {
+        this._webhook_url = '';
+        this._webhook_data = undefined;
+        this._type = 'cron';
+        this._schedule = '';
+        this._tz = undefined;
+    }
+
+    webhook_url(webhook_url: string): ScheduleJobBuilder {
+        this._webhook_url = webhook_url;
+        return this;
+    }
+
+    webhook_data(webhook_data: any): ScheduleJobBuilder {
+        this._webhook_data = webhook_data;
+        return this;
+    }
+
+    type(type: ScheduleJobType): ScheduleJobBuilder {
+        this._type = type;
+        return this;
+    }
+
+    schedule(schedule: string): ScheduleJobBuilder {
+        this._schedule = schedule;
+        return this;
+    }
+
+    tz(tz: string): ScheduleJobBuilder {
+        this._tz = tz;
+        return this;
+    }
+
+    build(): ScheduleJob {
+        return new ScheduleJob(this._webhook_url, this._webhook_data, this._type, this._schedule, this._tz);
+    }
+}
+
+export class ScheduleJobResponse {
+    key: string;
+    job_id: string;
+    job_status: number; // 100: not started, 200: scheduled, 300: running, 400: failed, 500: terminated, 600: completed
+    type: ScheduleJobType;
+    next_run?: Date;
+    last_run?: Date;
+    created_at?: Date;
+    updated_at?: Date;
+
+    constructor(key: string, job_id: string, job_status: number, type: ScheduleJobType, next_run?: Date, last_run?: Date, created_at?: Date, updated_at?: Date) {
+        this.key = key;
+        this.job_id = job_id;
+        this.job_status = job_status;
+        this.type = type;
+        this.next_run = next_run;
+        this.last_run = last_run;
+        this.created_at = created_at;
+        this.updated_at = updated_at;
+    }
+
+    static fromJson(json: any): ScheduleJobResponse {
+        return new ScheduleJobResponse(json.key, json.job_id, json.job_status, json.type, json.next_run ? new Date(json.next_run) : undefined, json.last_run ? new Date(json.last_run) : undefined, new Date(json.created_at), json.updated_at ? new Date(json.updated_at) : undefined);
+    }
+}

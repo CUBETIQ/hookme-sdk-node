@@ -1,14 +1,14 @@
-import { HookmeClientService } from './service';
+import { HookmeClientService, SchedulerClientService } from './service';
 import { PostWebhookFailedException } from './exceptions';
 import { Logs } from './logger';
-import { HookmeClientOptions, WebhookRequest, WebhookResponse } from './model';
+import { HookmeClientOptions, ScheduleJob, ScheduleJobResponse, WebhookRequest, WebhookResponse } from './model';
 import { AxiosError } from 'axios';
 import { IStore } from './store';
 import { generatedID } from './util';
 
 export class HookmeClient {
-  static readonly version = '0.0.6';
-  static readonly versionCode = '6';
+  static readonly version = '0.0.7';
+  static readonly versionCode = '7';
   static readonly userAgent = `${HookmeClient.name}:sdk-ts/${HookmeClient.version}-${HookmeClient.versionCode}`;
 
   private store?: IStore;
@@ -65,7 +65,7 @@ export class HookmeClient {
 
   private startProcessEmitQueue(seconds: number): void {
     Logs.d(`[startProcessEmitQueue] processing emit queue with interval: ${seconds} seconds`);
-    
+
     // create a new promise to avoid blocking the main thread
     new Promise(async (resolve) => {
       while (true) {
@@ -267,6 +267,35 @@ export class HookmeClient {
         Logs.d(`[failedToStoreRequest] added to retry queue: ${request._request_id}`);
       }
     }
+  }
+
+  // create a scheduled webhook endpoint (to be trigger in the future) and backed by hookme scheduler
+  async schedule(key: string, job: ScheduleJob): Promise<ScheduleJobResponse> {
+    Logs.d(`[schedule] scheduling job with key: ${key}`);
+
+    const resp = await SchedulerClientService.schedule(
+      this.options.url!,
+      this.options.tenantId ? this.options.tenantId : 'default',
+      this.options.apiKey ? this.options.apiKey : '',
+      key,
+      job
+    );
+
+    Logs.d(`[schedule] scheduled job response: ${JSON.stringify(resp.data)}`);
+    return ScheduleJobResponse.fromJson(resp.data);
+  }
+
+  async unschedule(key: string): Promise<void> {
+    Logs.d(`[unschedule] unscheduling job with key: ${key}`);
+
+    const resp = await SchedulerClientService.unschedule(
+      this.options.url!,
+      this.options.tenantId ? this.options.tenantId : 'default',
+      this.options.apiKey ? this.options.apiKey : '',
+      key,
+    );
+
+    Logs.d(`[unschedule] unscheduled job response: ${JSON.stringify(resp.data)}`);
   }
 
   getVersionInfo(): string {
