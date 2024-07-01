@@ -10,6 +10,7 @@ A simple way to send webhook request to the server.
 -   [x] Enhance the enqueue to the queue with storage (Add the storage to store the request for later sending).
 -   [ ] Support batch request sending for enqueue.
 -   [x] Support scheduler and allow to schedule the job for do webhook callback.
+-   [x] Add support Telegram send with photo and file url.
 
 ## Usages
 

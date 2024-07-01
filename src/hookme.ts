@@ -5,10 +5,11 @@ import { HookmeClientOptions, ScheduleJob, ScheduleJobResponse, WebhookRequest, 
 import { AxiosError } from 'axios';
 import { IStore } from './store';
 import { generatedID } from './util';
+import { DEFAULT_HOOKME_URL } from './config';
 
 export class HookmeClient {
-  static readonly version = '0.0.7';
-  static readonly versionCode = '7';
+  static readonly version = '0.0.8';
+  static readonly versionCode = '8';
   static readonly userAgent = `${HookmeClient.name}:sdk-ts/${HookmeClient.version}-${HookmeClient.versionCode}`;
 
   private store?: IStore;
@@ -27,6 +28,11 @@ export class HookmeClient {
     // set options and store
     this.options = options;
     this.store = options.store;
+    
+    if (!this.options.url) {
+      this.options.url = DEFAULT_HOOKME_URL
+    }
+
     Logs.d(`[constructor] HookmeClient initialized with url: ${options.url} and store: ${this.store ? 'enabled' : 'disabled'}`);
 
     // retry failed requests with non-blocking

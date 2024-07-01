@@ -1,6 +1,6 @@
 {
   "name": "@cubetiq/hookme-sdk",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "A simple way to send webhook request to the server",
   "main": "dist/index.js",
   "private": false,
