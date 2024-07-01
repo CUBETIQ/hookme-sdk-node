@@ -174,11 +174,13 @@ export class ScheduleJob {
     // cron e.g. '*/5 * * * * *' for every 5 seconds or '0 0 12 * * *' for every day at 12:00 PM
     // interval e.g. '5s' for every 5 seconds or '1h' for every 1 hour (unit: s, m, h, d, w)
     schedule: string;
+    webhook_headers?: Record<string, string>;
     tz?: string;
 
-    constructor(webhook_url: string, webhook_data: any, type: ScheduleJobType, schedule: string, tz?: string) {
+    constructor(webhook_url: string, webhook_data: any, type: ScheduleJobType, schedule: string, webhook_headers?: Record<string, string>, tz?: string) {
         this.webhook_url = webhook_url;
         this.webhook_data = webhook_data;
+        this.webhook_headers = webhook_headers;
         this.type = type;
         this.schedule = schedule;
         this.tz = tz;
@@ -192,6 +194,7 @@ export class ScheduleJob {
 class ScheduleJobBuilder {
     private _webhook_url: string;
     private _webhook_data: any;
+    private _webhook_headers?: Record<string, string>;
     private _type: ScheduleJobType;
     private _schedule: string;
     private _tz?: string;
@@ -199,6 +202,7 @@ class ScheduleJobBuilder {
     constructor() {
         this._webhook_url = '';
         this._webhook_data = undefined;
+        this._webhook_headers = undefined;
         this._type = 'cron';
         this._schedule = '';
         this._tz = undefined;
@@ -211,6 +215,11 @@ class ScheduleJobBuilder {
 
     webhook_data(webhook_data: any): ScheduleJobBuilder {
         this._webhook_data = webhook_data;
+        return this;
+    }
+
+    webhook_headers(webhook_headers?: Record<string, string>): ScheduleJobBuilder {
+        this._webhook_headers = webhook_headers;
         return this;
     }
 
@@ -230,7 +239,7 @@ class ScheduleJobBuilder {
     }
 
     build(): ScheduleJob {
-        return new ScheduleJob(this._webhook_url, this._webhook_data, this._type, this._schedule, this._tz);
+        return new ScheduleJob(this._webhook_url, this._webhook_data, this._type, this._schedule, this._webhook_headers, this._tz);
     }
 }
 

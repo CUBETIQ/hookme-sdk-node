@@ -34,6 +34,8 @@ const request = WebhookRequest.builder()
             bot_token: '123', // please replace with your bot_token (must a correct bot_token)
         },
         message: 'Hello, world!',
+        photo: 'https://example.com/photo.jpg', // please replace with your photo url, if you want to send photo
+        file: 'https://example.com/file.pdf', // please replace with your file url, if you want to send file
     })
     .build();
 

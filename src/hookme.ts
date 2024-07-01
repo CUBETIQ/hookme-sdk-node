@@ -8,8 +8,8 @@ import { generatedID } from './util';
 import { DEFAULT_HOOKME_URL } from './config';
 
 export class HookmeClient {
-  static readonly version = '0.0.8';
-  static readonly versionCode = '8';
+  static readonly version = '0.0.9';
+  static readonly versionCode = '9';
   static readonly userAgent = `${HookmeClient.name}:sdk-ts/${HookmeClient.version}-${HookmeClient.versionCode}`;
 
   private store?: IStore;
