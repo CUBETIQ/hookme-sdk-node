@@ -8,8 +8,8 @@ import { generatedID } from './util';
 import { DEFAULT_HOOKME_URL } from './config';
 
 export class HookmeClient {
-  static readonly version = '0.0.9';
-  static readonly versionCode = '9';
+  static readonly version = '0.0.10';
+  static readonly versionCode = '10';
   static readonly userAgent = `${HookmeClient.name}:sdk-ts/${HookmeClient.version}-${HookmeClient.versionCode}`;
 
   private store?: IStore;
@@ -28,12 +28,16 @@ export class HookmeClient {
     // set options and store
     this.options = options;
     this.store = options.store;
-    
+
     if (!this.options.url) {
       this.options.url = DEFAULT_HOOKME_URL
     }
 
-    Logs.d(`[constructor] HookmeClient initialized with url: ${options.url} and store: ${this.store ? 'enabled' : 'disabled'}`);
+    if (!this.options.tenantId) {
+      throw new Error('options.tenantId is required!');
+    }
+
+    Logs.d(`[constructor] HookmeClient initialized with url: ${options.url} tenant: ${options.tenantId} and store: ${this.store ? 'enabled' : 'disabled'}`);
 
     // retry failed requests with non-blocking
     this.retryFailedRequests().then(() => {
@@ -222,9 +226,14 @@ export class HookmeClient {
         this.failedToStoreRequest(request);
       }
 
+      Logs.d(`[post] post webhook failed with error: ${JSON.stringify(error)}`);
       if (error instanceof AxiosError) {
         const err = error.response?.data?.error || error.response?.data;
-        throw new PostWebhookFailedException(err, error.response?.status || responseStatus);
+        if (err) {
+          throw new PostWebhookFailedException(err, error.response?.status || responseStatus);
+        } else {
+          throw error;
+        }
       } else {
         throw new PostWebhookFailedException(JSON.stringify(error), responseStatus);
       }
@@ -238,6 +247,10 @@ export class HookmeClient {
   enqueue(request: WebhookRequest): void {
     if (!request._request_id) {
       request._request_id = generatedID();
+    }
+
+    if (!request._created_at) {
+      request._created_at = new Date();
     }
 
     // run in background to avoid blocking
@@ -255,6 +268,10 @@ export class HookmeClient {
     if (this.store) {
       if (!request._request_id) {
         request._request_id = generatedID();
+      }
+
+      if (!request._created_at) {
+        request._created_at = new Date();
       }
 
       // Avoiding writing the same request to store multiple times (so just ignore it if already stored)
