@@ -333,6 +333,7 @@ export class HookmeClient {
     return new HookmeClient({
       url: 'http://localhost:5001',
       store: store,
+      tenantId: 'default',
     });
   }
 }

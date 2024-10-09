@@ -6,3 +6,4 @@ tsconfig.json
 example/
 caches.json
 caches.test.json
+.DS_Store

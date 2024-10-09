@@ -3,3 +3,4 @@ build/
 node_modules/
 caches.json
 caches.test.json
+.DS_Store
